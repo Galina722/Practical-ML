@@ -117,9 +117,5 @@ confMatGBM
 
 The accuracy of the 3 regression modeling methods above is very good.
 
-For our project the Random Forest model will be applied to predict the 20 test cases (testing dataset) as shown below.
+For our project the Random Forest model will be applied to predict the 20 test cases (testing dataset).
 
-```{r choose, message=FALSE}
-predictTest <- predict(modelFitRF, newdata=testing)
-predictTest
-```
