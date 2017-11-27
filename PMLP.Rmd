@@ -1,0 +1,125 @@
+---
+title: "Practical Machine Learning Course project"
+author: "Galina Chtcherbakova"
+date: "November 26, 2017"
+output: html_document
+---
+
+Summary
+==============
+
+The dataset used in this project is called Weight Lifting Exercise Dataset and comes from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. 
+
+The goal of this project is to create a prediction model on common incorrect gestures during barbell lifts based on the data collected by devices such as Jawbone Up, Nike FuelBand, and Fitbit. 
+
+To find the best prediction model we clean the data by eliminating missing values. Then data is divided into training set and test set. We use the training set by three different methods: decision trees, random forest and generalized boosted models to find the better predicting method. Chosen method is applied to the test set.
+
+Background
+===========
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Data Analysis
+================
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+FIrst, let's set up an enviroment for our analysis and upload all needed libraries.
+
+```{r setup, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+library(caret)
+library(rpart)
+library(randomForest)
+library(knitr)
+library(ggplot2)
+library(rattle)
+library(rpart.plot)
+```
+
+## Loading of training and test data
+
+```{r loading, message=FALSE}
+train_Url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test_Url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+training <- read.csv(url(train_Url), na.strings=c("NA","#DIV/0!",""))
+testing <- read.csv(url(test_Url), na.strings=c("NA","#DIV/0!",""))
+dim(training)
+dim(testing)
+```
+
+## Cleaning data of NA values
+
+```{r cleaning, message=FALSE}
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+dim(training)
+dim(testing)
+```
+
+## Splitting training data into training and testing sets
+
+```{r split, message=FALSE}
+trainingSet <- createDataPartition(training$classe, p=0.6, list=FALSE)
+trainSet1 <- training[trainingSet, ]
+testSet1 <- training[-trainingSet, ]
+dim(trainSet1)
+dim(testSet1)
+```
+
+Choosing Prediction Model
+============================
+
+## Method - Decision Trees
+
+```{r decision, message=FALSE}
+set.seed(9876)
+modelFitDT <- rpart(classe ~ ., data=trainSet1, method="class")
+fancyRpartPlot(modelFitDT)
+predictDT <- predict(modelFitDT, testSet1, type = "class")
+confMatDT <- confusionMatrix(predictDT, testSet1$classe)
+confMatDT
+```
+
+## Method - Random Forest
+
+```{r random, message=FALSE}
+set.seed(9876)
+controlRF <- trainControl(method="cv", number=5, verbose=FALSE)
+modelFitRF <- train(classe ~ ., data=trainSet1, method="rf", trControl=controlRF)
+modelFitRF$finalModel
+predictRF <- predict(modelFitRF, newdata=testSet1)
+confMatRF <- confusionMatrix(predictRF, testSet1$classe)
+confMatRF
+```
+
+## Method - Generalized Boosted Model
+
+```{r generalized, message=FALSE}
+set.seed(9876)
+controlGBM <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+modelFitGBM <- train(classe ~ ., data= trainSet1, method="gbm",trControl= controlGBM, verbose=FALSE)
+modelFitGBM$finalModel
+predictGBM <- predict(modelFitGBM, newdata=testSet1)
+confMatGBM <- confusionMatrix(predictGBM, testSet1$classe)
+confMatGBM
+
+```
+
+## Choosing The Model For Prediction
+
+The accuracy of the 3 regression modeling methods above is very good.
+
+For our project the Random Forest model will be applied to predict the 20 test cases (testing dataset) as shown below.
+
+```{r choose, message=FALSE}
+predictTest <- predict(modelFitRF, newdata=testing)
+predictTest
+```
